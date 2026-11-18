@@ -135,6 +135,29 @@ function parsePages(str,total){
   return [...out].sort((x,y)=>x-y);
 }
 async function readPdf(file){ const bytes=await file.arrayBuffer(); return PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true}); }
+// pdf.js 兼容引擎：能解开受保护文件的加密流
+function jsWorker(){ pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js'; }
+async function jsOpen(file){ jsWorker(); const bytes=await file.arrayBuffer(); return pdfjsLib.getDocument({data:bytes}).promise; }
+async function jsRenderJpg(pdfDoc,pageNum,scale=2,rotOffset=0,q=0.92){
+  const page=await pdfDoc.getPage(pageNum);
+  const baseRot=page.rotate||0;
+  const vp=page.getViewport({scale,rotation:(baseRot+rotOffset)%360});
+  const cv=document.createElement('canvas'); cv.width=Math.round(vp.width); cv.height=Math.round(vp.height);
+  await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+  return cv.toDataURL('image/jpeg',q);
+}
+// 用 pdf.js 把若干页重建为新 PDF（兼容模式核心）
+async function rebuildPages(dst, pdfDoc, pageIdxs, rotOffset=0){
+  for(const idx of pageIdxs){
+    const url=await jsRenderJpg(pdfDoc, idx+1, 2, rotOffset);
+    const img=await dst.embedJpg(url);
+    const p=dst.addPage([img.width,img.height]); p.drawImage(img,{x:0,y:0,width:img.width,height:img.height});
+  }
+}
+// 判断文件是否加密/受保护（pdf-lib 能解析但内容流解不开 → 输出空白）
+async function isProtected(file){
+  try{ const d=await readPdf(file); return !!d.isEncrypted; }catch(e){ return false; }
+}
 async function run(){
   const go=$('go'); go.disabled=true; setStatus('处理中，请稍候…');
   try{
@@ -142,35 +165,65 @@ async function run(){
     const id=curTool.id;
     if(id==='merge'){
       if(files.length<2) throw new Error('请至少选择 2 个 PDF');
+      // 检测受保护文件 → 自动兼容模式
+      let compat=false;
+      for(const f of files){ if(await isProtected(f)){ compat=true; break; } }
       const dst=await PDFLib.PDFDocument.create();
-      for(const f of files){ const src=await readPdf(f); const pages=await dst.copyPages(src,src.getPageIndices()); pages.forEach(p=>dst.addPage(p)); }
-      out=[[files.length+'个PDF合并.pdf', await dst.save()]];
+      if(compat){
+        setStatus('检测到受保护文件，自动使用兼容模式（页面转为图片，文字将不可复制）…');
+        for(const f of files){ const jd=await jsOpen(f); await rebuildPages(dst,jd,[...Array(jd.numPages).keys()]); await jd.destroy(); }
+      } else {
+        for(const f of files){ const src=await readPdf(f); const pages=await dst.copyPages(src,src.getPageIndices()); pages.forEach(p=>dst.addPage(p)); }
+      }
+      out=[[(compat?'合并结果（兼容模式）.pdf':files.length+'个PDF合并.pdf'), await dst.save()]];
     } else if(id==='split'){
-      const src=await readPdf(files[0]); const total=src.getPageCount();
+      let compat = await isProtected(files[0]);
+      if(compat) setStatus('检测到受保护文件，自动使用兼容模式（页面转为图片，文字将不可复制）…');
+      const src=compat?null:await readPdf(files[0]);
+      const total = compat ? (await jsOpen(files[0])).numPages : src.getPageCount();
+      let jd=null; if(compat){ jd=await jsOpen(files[0]); }
       const pages=parsePages(($('oPages')||{}).value,total);
       if(!pages){ // 每页单独
         for(let i=0;i<total;i++){
           const dst=await PDFLib.PDFDocument.create();
-          const [p]=await dst.copyPages(src,[i]); dst.addPage(p);
+          if(compat){ await rebuildPages(dst,jd,[i]); }
+          else { const [p]=await dst.copyPages(src,[i]); dst.addPage(p); }
           out.push([`第${i+1}页.pdf`, await dst.save()]);
         }
       } else {
         const dst=await PDFLib.PDFDocument.create();
-        const cp=await dst.copyPages(src,pages.map(p=>p-1)); cp.forEach(p=>dst.addPage(p));
-        out=[['拆分结果.pdf', await dst.save()]];
+        if(compat){ await rebuildPages(dst,jd,pages.map(p=>p-1)); }
+        else { const cp=await dst.copyPages(src,pages.map(p=>p-1)); cp.forEach(p=>dst.addPage(p)); }
+        out=[[(compat?'拆分结果（兼容模式）.pdf':'拆分结果.pdf'), await dst.save()]];
       }
+      if(jd) await jd.destroy();
     } else if(id==='rotate'){
-      const src=await readPdf(files[0]); const ang=+$('oAngle').value;
-      src.getPages().forEach(p=>p.setRotation(PDFLib.degrees((p.getRotation().angle+ang)%360)));
-      out=[['旋转后.pdf', await src.save()]];
+      const ang=+$('oAngle').value;
+      let compat = await isProtected(files[0]);
+      if(compat) setStatus('检测到受保护文件，自动使用兼容模式（页面转为图片，文字将不可复制）…');
+      if(!compat){
+        const src=await readPdf(files[0]);
+        src.getPages().forEach(p=>p.setRotation(PDFLib.degrees((p.getRotation().angle+ang)%360)));
+        out=[['旋转后.pdf', await src.save()]];
+      } else {
+        const dst=await PDFLib.PDFDocument.create();
+        const jd=await jsOpen(files[0]);
+        await rebuildPages(dst,jd,[...Array(jd.numPages).keys()],ang);
+        await jd.destroy();
+        out=[['旋转后（兼容模式）.pdf', await dst.save()]];
+      }
     } else if(id==='delpg'){
-      const src=await readPdf(files[0]); const total=src.getPageCount();
+      let compat = await isProtected(files[0]);
+      if(compat) setStatus('检测到受保护文件，自动使用兼容模式（页面转为图片，文字将不可复制）…');
+      const src=compat?null:await readPdf(files[0]);
+      const total = compat ? (await jsOpen(files[0])).numPages : src.getPageCount();
       const del=new Set(parsePages($('oPages').value,total)||[]);
       if(!del.size) throw new Error('请填写要删除的页码');
-      const dst=await PDFLib.PDFDocument.create();
       const keep=[]; for(let i=1;i<=total;i++) if(!del.has(i)) keep.push(i-1);
-      const cp=await dst.copyPages(src,keep); cp.forEach(p=>dst.addPage(p));
-      out=[['删除后.pdf', await dst.save()]];
+      const dst=await PDFLib.PDFDocument.create();
+      if(compat){ const jd=await jsOpen(files[0]); await rebuildPages(dst,jd,keep); await jd.destroy(); }
+      else { const cp=await dst.copyPages(src,keep); cp.forEach(p=>dst.addPage(p)); }
+      out=[[(compat?'删除后（兼容模式）.pdf':'删除后.pdf'), await dst.save()]];
     } else if(id==='img2pdf'){
       const dst=await PDFLib.PDFDocument.create();
       for(const f of files){
