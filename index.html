@@ -46,7 +46,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 <header>
   <h1>📄 PDF 工具箱</h1>
   <p>合并 · 拆分 · 旋转 · 删页 · 图片互转 · 压缩</p>
-  <span class="badge">🔒 全程本地处理，文件不上传任何服务器</span>
+  <span class="badge" id="modeBadge">🔒 全程本地处理，文件不上传任何服务器</span>
 </header>
 <main>
   <div id="menu" class="grid"></div>
@@ -65,7 +65,11 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
 <script>
-const TOOLS = [
+// ===== NAS 服务端（Stirling PDF 经 Cloudflare 隧道暴露，地址由 nas.json 自愈同步）=====
+const NAS_KEY='pk_38b17a8712c561e6cd80b9d1';
+const NAS_EP={ ocr:'/api/v1/misc/ocr-pdf', compress:'/api/v1/misc/compress-pdf' };
+const NAS={ url:null, updated:null, checking:true };
+let TOOLS = [
   {id:'merge', ico:'🗂️', name:'合并 PDF', desc:'选择多个 PDF，按顺序合并为一个文件'},
   {id:'split', ico:'✂️', name:'拆分 PDF', desc:'按页码区间拆分导出（如 1-3,5,8-10）'},
   {id:'rotate',ico:'🔄', name:'旋转页面', desc:'旋转所有页面（90/180/270°）'},
@@ -74,8 +78,34 @@ const TOOLS = [
   {id:'pdf2img',ico:'📸', name:'PDF 转图片', desc:'把 PDF 每页导出为 PNG 图片'},
   {id:'compress',ico:'🗜️', name:'压缩 PDF', desc:'页面转图片重编码（可选质量，牺牲文字可复制性）'},
 ];
+const SRV_TOOLS=[
+  {id:'srvcompress', srv:true, ico:'⚡', name:'真无损压缩', desc:'服务器端重构对象流，文件更小且文字保持可复制（NAS 在线时可用）', accept:'application/pdf'},
+];
 const menu = document.getElementById('menu');
-menu.innerHTML = TOOLS.map(t=>`<div class="tool" onclick="openTool('${t.id}')"><div class="ico">${t.ico}</div><h3>${t.name}</h3><p>${t.desc}</p></div>`).join('');
+function renderMenu(){
+  menu.innerHTML = TOOLS.map(t=>`<div class="tool" onclick="openTool('${t.id}')"><div class="ico">${t.ico}</div><h3>${t.name}</h3><p>${t.desc}</p></div>`).join('');
+}
+renderMenu();
+async function detectNas(){
+  try{
+    const r=await fetch('nas.json?t='+Date.now(),{cache:'no-store'});
+    if(r.ok){
+      const j=await r.json();
+      if(j&&j.url){
+        const base=j.url.replace(/\/+$/,'');
+        const pr=await fetch(base+'/',{headers:{'X-Pdf-Key':NAS_KEY}});
+        if(pr.ok){ NAS.url=base; NAS.updated=j.updated; }
+      }
+    }
+  }catch(e){}
+  NAS.checking=false;
+  if(NAS.url){
+    TOOLS=TOOLS.filter(t=>!t.srv).concat(SRV_TOOLS); renderMenu();
+    $('modeBadge').textContent='🟢 家里 NAS 已连接：真无损压缩已启用（OCR 需 Stirling 授权，暂不可用）';
+    $('modeBadge').title='隧道地址更新于 '+(NAS.updated||'');
+  }
+}
+detectNas(); setInterval(detectNas, 300000);
 
 let curTool=null, files=[];
 const $=id=>document.getElementById(id);
@@ -88,10 +118,9 @@ function openTool(id){
   $('pTitle').textContent=curTool.ico+' '+curTool.name;
   $('pDesc').textContent=curTool.desc;
   $('pStatus').textContent=''; $('pOut').innerHTML='';
-  const accept = (id==='img2pdf') ? 'image/jpeg,image/png' : 'application/pdf';
-  const multi = (id!=='img2pdf') ? 'multiple' : 'multiple';
+  const accept = curTool.accept ? curTool.accept : ((id==='img2pdf') ? 'image/jpeg,image/png' : 'application/pdf');
   $('pBody').innerHTML = `
-    <div class="drop" id="drop">点击或拖拽文件到这里（${id==='img2pdf'?'JPG / PNG':'PDF'}）</div>
+    <div class="drop" id="drop">点击或拖拽文件到这里（${id==='img2pdf'?'JPG / PNG':(id==='office2pdf'?'Word / Excel / PPT':'PDF')}）</div>
     <div class="filelist" id="flist"></div>
     <div id="opts"></div>
     <button class="go" id="go" disabled>开始处理</button>`;
@@ -115,7 +144,9 @@ function renderOpts(){
 }
 function addFiles(list){
   for(const f of list){
-    const okType = curTool.id==='img2pdf' ? /image\/(jpeg|png)/.test(f.type) : (f.type==='application/pdf' || /\.pdf$/i.test(f.name));
+    const okType = curTool.id==='img2pdf' ? /image\/(jpeg|png)/.test(f.type)
+      : curTool.id==='office2pdf' ? /\.(docx?|xlsx?|pptx?)$/i.test(f.name)
+      : (f.type==='application/pdf' || /\.pdf$/i.test(f.name));
     if(okType) files.push(f);
   }
   $('flist').innerHTML = files.map((f,i)=>`<div class="f"><span>${i+1}. ${f.name}（${(f.size/1048576).toFixed(2)} MB）</span><span class="rm" onclick="files.splice(${i},1);renderList()">✕</span></div>`).join('');
@@ -159,7 +190,22 @@ async function isProtected(file){
   try{ const d=await readPdf(file); return !!d.isEncrypted; }catch(e){ return false; }
 }
 async function run(){
-  const go=$('go'); go.disabled=true; setStatus('处理中，请稍候…');
+  const go=$('go'); go.disabled=true;
+  // ===== 服务端工具分支 =====
+  if(curTool.srv){
+    if(!NAS.url){ setStatus('❌ NAS 不在线，服务端功能暂不可用（本地工具不受影响）','err'); go.disabled=false; return; }
+    try{
+      const fd=new FormData();
+      if(curTool.id==='srvcompress'){
+        if(files.length<1) throw new Error('请选择 PDF');
+        setStatus('上传到 NAS（无损压缩，速度取决于上行带宽）…');
+        fd.append('fileInput', files[0]);
+        await serverJob(NAS_EP.compress, fd, files[0].name.replace(/\.pdf$/i,'')+'-压缩.pdf');
+      }
+    }catch(err){ console.error(err); setStatus('❌ '+(err.message||'服务器处理失败'),'err'); }
+    go.disabled=false; return;
+  }
+  setStatus('处理中，请稍候…');
   try{
     let out=[];
     const id=curTool.id;
@@ -275,6 +321,18 @@ async function run(){
   go.disabled=false;
 }
 function triggerDownload(url,name){ const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),30000); }
+async function serverJob(ep, fd, outName){
+  const t0=Date.now();
+  const r=await fetch(NAS.url+ep,{method:'POST',headers:{'X-Pdf-Key':NAS_KEY},body:fd});
+  if(!r.ok){
+    const t=await r.text().catch(()=>'');
+    throw new Error('服务器返回 '+r.status+(r.status===403?'（密钥不匹配）':'')+(t? '：'+t.slice(0,120):''));
+  }
+  const blob=await r.blob();
+  if(blob.size<200 && blob.type.includes('json')) throw new Error('服务器返回异常响应');
+  triggerDownload(URL.createObjectURL(blob), outName);
+  setStatus(`✅ 完成（${((blob.size/1048576).toFixed(2))} MB，耗时 ${((Date.now()-t0)/1000).toFixed(1)}s），已开始下载`,'ok');
+}
 </script>
 </body>
 </html>
