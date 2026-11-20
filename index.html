@@ -103,7 +103,7 @@ async function detectNas(){
   NAS.checking=false;
   if(NAS.url){
     TOOLS=TOOLS.filter(t=>!t.srv).concat(SRV_TOOLS); renderMenu();
-    $('modeBadge').innerHTML=`<svg viewBox="0 0 24 24" width="14" height="14" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="6" fill="#22c55e" stroke="none"/></svg> 家里 NAS 已连接：真无损压缩 · OCR 文字识别 · Office 转 PDF 已启用`;
+    $('modeBadge').innerHTML=`<svg viewBox="0 0 24 24" width="14" height="14" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="6" fill="#22c55e" stroke="none"/></svg> NAS 已连接：真无损压缩 · OCR 文字识别 · Office 转 PDF 已启用`;
     $('modeBadge').title='隧道地址更新于 '+(NAS.updated||'');
   }
 }
