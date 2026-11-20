@@ -147,7 +147,7 @@ function renderOpts(){
 function addFiles(list){
   for(const f of list){
     const okType = curTool.id==='img2pdf' ? /image\/(jpeg|png)/.test(f.type)
-      : curTool.id==='office2pdf' ? /\.(docx?|xlsx?|pptx?)$/i.test(f.name)
+      : curTool.id==='srvoffice' ? /\.(docx?|xlsx?|pptx?)$/i.test(f.name)
       : (f.type==='application/pdf' || /\.pdf$/i.test(f.name));
     if(okType) files.push(f);
   }
