@@ -17,7 +17,7 @@ main{max-width:760px;margin:0 auto;padding:20px 14px 60px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
 .tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 14px;text-align:center;cursor:pointer;transition:.15s;user-select:none}
 .tool:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);border-color:var(--pri)}
-.tool .ico{font-size:30px}
+.tool .ico{font-size:30px;line-height:1}
 .tool h3{font-size:15px;margin:8px 0 4px}
 .tool p{font-size:12px;color:var(--muted)}
 .panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:16px}
@@ -44,9 +44,9 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
 </head>
 <body>
 <header>
-  <h1>📄 PDF 工具箱</h1>
+  <h1><svg viewBox='0 0 24 24' width='30' height='30' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> PDF 工具箱</h1>
   <p>合并 · 拆分 · 旋转 · 删页 · 图片互转 · 压缩</p>
-  <span class="badge" id="modeBadge">🔒 全程本地处理，文件不上传任何服务器</span>
+  <span class="badge" id="modeBadge"><svg viewBox='0 0 24 24' width='14' height='14' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='display:inline-block;vertical-align:middle'><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> 全程本地处理，文件不上传任何服务器</span>
 </header>
 <main>
   <div id="menu" class="grid"></div>
@@ -70,18 +70,18 @@ const NAS_KEY='pk_38b17a8712c561e6cd80b9d1';
 const NAS_EP={ ocr:'/api/v1/misc/ocr-pdf', compress:'/api/v1/misc/compress-pdf' };
 const NAS={ url:null, updated:null, checking:true };
 let TOOLS = [
-  {id:'merge', ico:'🗂️', name:'合并 PDF', desc:'选择多个 PDF，按顺序合并为一个文件'},
-  {id:'split', ico:'✂️', name:'拆分 PDF', desc:'按页码区间拆分导出（如 1-3,5,8-10）'},
-  {id:'rotate',ico:'🔄', name:'旋转页面', desc:'旋转所有页面（90/180/270°）'},
-  {id:'delpg', ico:'🗑️', name:'删除页面', desc:'删除指定页码后导出（如 2,5-7）'},
-  {id:'img2pdf',ico:'🖼️', name:'图片转 PDF', desc:'JPG/PNG 多张图片合成一个 PDF'},
-  {id:'pdf2img',ico:'📸', name:'PDF 转图片', desc:'把 PDF 每页导出为 PNG 图片'},
-  {id:'compress',ico:'🗜️', name:'压缩 PDF', desc:'页面转图片重编码（可选质量，牺牲文字可复制性）'},
+  {id:'merge', ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/><path d="M7 13v3a2 2 0 0 0 2 2h3"/></svg>`, name:'合并 PDF', desc:'选择多个 PDF，按顺序合并为一个文件'},
+  {id:'split', ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7.5 20 18M8 16.5 20 6"/></svg>`, name:'拆分 PDF', desc:'按页码区间拆分导出（如 1-3,5,8-10）'},
+  {id:'rotate',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>`, name:'旋转页面', desc:'旋转所有页面（90/180/270°）'},
+  {id:'delpg', ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg>`, name:'删除页面', desc:'删除指定页码后导出（如 2,5-7）'},
+  {id:'img2pdf',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5-9 10"/></svg>`, name:'图片转 PDF', desc:'JPG/PNG 多张图片合成一个 PDF'},
+  {id:'pdf2img',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.5"/></svg>`, name:'PDF 转图片', desc:'把 PDF 每页导出为 PNG 图片'},
+  {id:'compress',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M8 3v5a2 2 0 0 1-2 2H3M16 3v5a2 2 0 0 0 2 2h3M8 21v-5a2 2 0 0 0-2-2H3M16 21v-5a2 2 0 0 1 2-2h3"/></svg>`, name:'压缩 PDF', desc:'页面转图片重编码（可选质量，牺牲文字可复制性）'},
 ];
 const SRV_TOOLS=[
-  {id:'srvcompress', srv:true, ico:'⚡', name:'真无损压缩', desc:'服务器端重构对象流，文件更小且文字保持可复制（NAS 在线时可用）', accept:'application/pdf'},
-  {id:'srvocr',      srv:true, ico:'🔍', name:'OCR 文字识别', desc:'服务器端识别扫描件文字，生成可搜索复制文本的 PDF（默认中文简体+英文）', accept:'application/pdf'},
-  {id:'srvoffice',   srv:true, ico:'📝', name:'Office 转 PDF', desc:'Word / Excel / PPT 上传 NAS 转换为 PDF（docx/xlsx/pptx/doc/xls/ppt）', accept:'.docx,.doc,.xlsx,.xls,.pptx,.ppt'},
+  {id:'srvcompress', srv:true, ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>`, name:'真无损压缩', desc:'服务器端重构对象流，文件更小且文字保持可复制（NAS 在线时可用）', accept:'application/pdf'},
+  {id:'srvocr',      srv:true, ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M21 21l-5-5"/><path d="M8 10.5h5M10.5 8v5"/></svg>`, name:'OCR 文字识别', desc:'服务器端识别扫描件文字，生成可搜索复制文本的 PDF（默认中文简体+英文）', accept:'application/pdf'},
+  {id:'srvoffice',   srv:true, ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>`, name:'Office 转 PDF', desc:'Word / Excel / PPT 上传 NAS 转换为 PDF（docx/xlsx/pptx/doc/xls/ppt）', accept:'.docx,.doc,.xlsx,.xls,.pptx,.ppt'},
 ];
 const menu = document.getElementById('menu');
 function renderMenu(){
@@ -103,7 +103,7 @@ async function detectNas(){
   NAS.checking=false;
   if(NAS.url){
     TOOLS=TOOLS.filter(t=>!t.srv).concat(SRV_TOOLS); renderMenu();
-    $('modeBadge').textContent='🟢 家里 NAS 已连接：真无损压缩 · OCR 文字识别 · Office 转 PDF 已启用';
+    $('modeBadge').innerHTML=`<svg viewBox="0 0 24 24" width="14" height="14" style="display:inline-block;vertical-align:middle"><circle cx="12" cy="12" r="6" fill="#22c55e" stroke="none"/></svg> 家里 NAS 已连接：真无损压缩 · OCR 文字识别 · Office 转 PDF 已启用`;
     $('modeBadge').title='隧道地址更新于 '+(NAS.updated||'');
   }
 }
