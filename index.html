@@ -60,7 +60,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     <div id="pOut"></div>
   </div>
 </main>
-<footer>托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.1 · 2026-11-20 新增图片压缩（WebP/AVIF）</span></footer>
+<footer data-build="v3.2 · 2026-11-20 16:51 修复工具标题 SVG 乱码与上传提示">托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.2 · 2026-11-20 16:51 修复工具标题 SVG 乱码与上传提示</span></footer>
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
@@ -118,12 +118,12 @@ function openTool(id){
   curTool=TOOLS.find(t=>t.id===id); files=[];
   $('menu').style.display='none';
   $('panel').classList.add('active');
-  $('pTitle').textContent=curTool.ico+' '+curTool.name;
+  $('pTitle').innerHTML=curTool.ico+' '+curTool.name;
   $('pDesc').textContent=curTool.desc;
   $('pStatus').textContent=''; $('pOut').innerHTML='';
   const accept = curTool.accept ? curTool.accept : ((id==='img2pdf') ? 'image/jpeg,image/png' : 'application/pdf');
   $('pBody').innerHTML = `
-    <div class="drop" id="drop">点击或拖拽文件到这里（${id==='img2pdf'?'JPG / PNG':(id==='office2pdf'?'Word / Excel / PPT':'PDF')}）</div>
+    <div class="drop" id="drop">点击或拖拽文件到这里（${id==='imgcompress'?'JPG / PNG / WebP':id==='img2pdf'?'JPG / PNG':id==='srvoffice'?'Word / Excel / PPT':'PDF'}）</div>
     <div class="filelist" id="flist"></div>
     <div id="opts"></div>
     <button class="go" id="go" disabled>开始处理</button>`;
