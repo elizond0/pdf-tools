@@ -80,6 +80,8 @@ let TOOLS = [
 ];
 const SRV_TOOLS=[
   {id:'srvcompress', srv:true, ico:'⚡', name:'真无损压缩', desc:'服务器端重构对象流，文件更小且文字保持可复制（NAS 在线时可用）', accept:'application/pdf'},
+  {id:'srvocr',      srv:true, ico:'🔍', name:'OCR 文字识别', desc:'服务器端识别扫描件文字，生成可搜索复制文本的 PDF（默认中文简体+英文）', accept:'application/pdf'},
+  {id:'srvoffice',   srv:true, ico:'📝', name:'Office 转 PDF', desc:'Word / Excel / PPT 上传 NAS 转换为 PDF（docx/xlsx/pptx/doc/xls/ppt）', accept:'.docx,.xlsx,.pptx,.doc,.xls,.ppt,application/msword,application/vnd.openxmlformats-officedocument.*'},
 ];
 const menu = document.getElementById('menu');
 function renderMenu(){
@@ -101,7 +103,7 @@ async function detectNas(){
   NAS.checking=false;
   if(NAS.url){
     TOOLS=TOOLS.filter(t=>!t.srv).concat(SRV_TOOLS); renderMenu();
-    $('modeBadge').textContent='🟢 家里 NAS 已连接：真无损压缩已启用（OCR 需 Stirling 授权，暂不可用）';
+    $('modeBadge').textContent='🟢 家里 NAS 已连接：真无损压缩 · OCR 文字识别 · Office 转 PDF 已启用';
     $('modeBadge').title='隧道地址更新于 '+(NAS.updated||'');
   }
 }
@@ -201,6 +203,19 @@ async function run(){
         setStatus('上传到 NAS（无损压缩，速度取决于上行带宽）…');
         fd.append('fileInput', files[0]);
         await serverJob(NAS_EP.compress, fd, files[0].name.replace(/\.pdf$/i,'')+'-压缩.pdf');
+      } else if(curTool.id==='srvocr'){
+        if(files.length<1) throw new Error('请选择 PDF');
+        setStatus('上传到 NAS（OCR 识别中，扫描件页数多时较慢）…');
+        fd.append('fileInput', files[0]);
+        fd.append('languages', 'chi_sim');
+        fd.append('languages', 'eng');
+        fd.append('ocrType', 'skipText');
+        await serverJob(NAS_EP.ocr, fd, files[0].name.replace(/\.pdf$/i,'')+'-OCR.pdf');
+      } else if(curTool.id==='srvoffice'){
+        if(files.length<1) throw new Error('请选择 Word / Excel / PPT 文件');
+        setStatus('上传到 NAS（LibreOffice 转换中）…');
+        fd.append('fileInput', files[0]);
+        await serverJob('/api/v1/convert/file/pdf', fd, files[0].name.replace(/\.[^.]+$/,'')+'.pdf');
       }
     }catch(err){ console.error(err); setStatus('❌ '+(err.message||'服务器处理失败'),'err'); }
     go.disabled=false; return;
