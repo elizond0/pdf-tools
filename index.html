@@ -60,7 +60,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     <div id="pOut"></div>
   </div>
 </main>
-<footer>托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.0 · 2026-11-20 10:36 发布</span></footer>
+<footer>托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.1 · 2026-11-20 新增图片压缩（WebP/AVIF）</span></footer>
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
@@ -77,6 +77,7 @@ let TOOLS = [
   {id:'img2pdf',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5-9 10"/></svg>`, name:'图片转 PDF', desc:'JPG/PNG 多张图片合成一个 PDF'},
   {id:'pdf2img',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.5"/></svg>`, name:'PDF 转图片', desc:'把 PDF 每页导出为 PNG 图片'},
   {id:'compress',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M8 3v5a2 2 0 0 1-2 2H3M16 3v5a2 2 0 0 0 2 2h3M8 21v-5a2 2 0 0 0-2-2H3M16 21v-5a2 2 0 0 1 2-2h3"/></svg>`, name:'压缩 PDF', desc:'页面转图片重编码（可选质量，牺牲文字可复制性）'},
+  {id:'imgcompress',ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`, name:'压缩图片', desc:'JPG/PNG/WebP 压缩，WebP/AVIF 输出，本地处理不上传',accept:'image/jpeg,image/png,image/webp'},
 ];
 const SRV_TOOLS=[
   {id:'srvcompress', srv:true, ico:`<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>`, name:'真无损压缩', desc:'服务器端重构对象流，文件更小且文字保持可复制（NAS 在线时可用）', accept:'application/pdf'},
@@ -142,11 +143,15 @@ function renderOpts(){
   else if(id==='split') o.innerHTML=`<div class="row"><label>保留/导出页码</label><input type="text" id="oPages" placeholder="如 1-3,5,8-10；留空=每页单独一个文件"></div>`;
   else if(id==='compress') o.innerHTML=`<div class="row"><label>图片质量</label><select id="oQ"><option value="0.8">高（80%）</option><option value="0.6" selected>中（60%，推荐）</option><option value="0.4">低（40%，体积最小）</option></select><label>缩放</label><select id="oS"><option value="1">原始尺寸</option><option value="1.5" selected>1.5×DPI</option><option value="2">2×DPI</option></select></div>`;
   else if(id==='pdf2img') o.innerHTML=`<div class="row"><label>缩放</label><select id="oS"><option value="1.5" selected>1.5×（推荐）</option><option value="2">2×（更清晰）</option><option value="3">3×（最清晰）</option></select></div>`;
+  else if(id==='imgcompress') o.innerHTML=`<div class="row"><label>输出格式</label><select id="oFmt"><option value="webp-fast">WebP 快速（推荐，秒出）</option><option value="avif">AVIF（体积最小，稍慢）</option><option value="webp-pro">WebP 专业（更高质量）</option><option value="jpeg">JPEG（通用）</option><option value="png">PNG（无损）</option></select></div>
+    <div class="row"><label>压缩质量</label><select id="oQ"><option value="0.9">高 90%</option><option value="0.8" selected>中 80%</option><option value="0.6">低 60%</option></select><label>最大边长</label><select id="oMAX"><option value="0" selected>不缩放</option><option value="1920">1920px</option><option value="1280">1280px</option></select></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">AVIF / 专业 WebP 首次会加载约 3MB 编码器（本地自带，不联网）；图片全程不上传</div>`;
   else o.innerHTML='';
 }
 function addFiles(list){
   for(const f of list){
-    const okType = curTool.id==='img2pdf' ? /image\/(jpeg|png)/.test(f.type)
+    const okType = curTool.id==='imgcompress' ? /image\/(jpeg|png|webp)/.test(f.type)
+      : curTool.id==='img2pdf' ? /image\/(jpeg|png)/.test(f.type)
       : curTool.id==='srvoffice' ? /\.(docx?|xlsx?|pptx?)$/i.test(f.name)
       : (f.type==='application/pdf' || /\.pdf$/i.test(f.name));
     if(okType) files.push(f);
@@ -166,6 +171,36 @@ function parsePages(str,total){
     for(let p=Math.min(a,b);p<=Math.max(a,b);p++){ if(p>=1&&p<=total) out.add(p); }
   }
   return [...out].sort((x,y)=>x-y);
+}
+// ===== 图片压缩：本地 WASM 编码器（AVIF/WebP） + Canvas 快速档 =====
+const IMG_enc={avif:null,webp:null};
+async function getEnc(kind){
+  if(IMG_enc[kind]) return IMG_enc[kind];
+  try{
+    if(kind==='avif'){ const m=await import('./codecs/avif/encode.js'); await m.init(); IMG_enc.avif=m; }
+    else { const m=await import('./codecs/webp/encode.js'); await m.init(); IMG_enc.webp=m; }
+    return IMG_enc[kind];
+  }catch(e){ throw new Error('编码器加载失败：'+e.message+'（需通过 HTTP 访问，不能直接双击 file:// 打开）'); }
+}
+async function imgEncodeFast(file,mime,q,mx){
+  const bmp=await createImageBitmap(file);
+  let w=bmp.width,h=bmp.height;
+  if(mx>0&&Math.max(w,h)>mx){const s=mx/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+  const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');
+  if(mime==='image/jpeg'){ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);}
+  ctx.drawImage(bmp,0,0,w,h);bmp.close();
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej(new Error('编码失败')),mime,q));
+}
+async function imgEncodeWasm(file,kind,q,mx){
+  const bmp=await createImageBitmap(file);
+  let w=bmp.width,h=bmp.height;
+  if(mx>0&&Math.max(w,h)>mx){const s=mx/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(bmp,0,0,w,h);bmp.close();
+  const data=ctx.getImageData(0,0,w,h);
+  const m=await getEnc(kind);
+  const buf=await m.default(data,{quality:Math.round(q*100), ...(kind==='avif'?{speed:6}:{method:4})});
+  return new Blob([buf],{type:kind==='avif'?'image/avif':'image/webp'});
 }
 async function readPdf(file){ const bytes=await file.arrayBuffer(); return PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true}); }
 // pdf.js 兼容引擎：能解开受保护文件的加密流
@@ -293,6 +328,22 @@ async function run(){
         const page=dst.addPage([img.width,img.height]); page.drawImage(img,{x:0,y:0,width:img.width,height:img.height});
       }
       out=[['图片合成.pdf', await dst.save()]];
+    } else if(id==='imgcompress'){
+      const fmt=$('oFmt').value, q=+$('oQ').value, mx=+$('oMAX').value||0;
+      const mime = fmt==='avif'?'image/avif': fmt==='webp-pro'?'image/webp': fmt==='jpeg'?'image/jpeg': fmt==='png'?'image/png':'image/webp';
+      const extn = fmt==='avif'?'avif': fmt==='jpeg'?'jpg': fmt==='png'?'png':'webp';
+      if(fmt==='avif'||fmt==='webp-pro') setStatus('加载本地编码器并压缩（首次稍慢）…');
+      for(let i=0;i<files.length;i++){
+        setStatus(`压缩图片 ${i+1}/${files.length}：${files[i].name}…`);
+        let blob;
+        if(fmt==='avif') blob=await imgEncodeWasm(files[i],'avif',q,mx);
+        else if(fmt==='webp-pro') blob=await imgEncodeWasm(files[i],'webp',q,mx);
+        else blob=await imgEncodeFast(files[i],mime,q,mx);
+        out=[[files[i].name.replace(/\.[^.]+$/,'')+'-compressed.'+extn, await blob.arrayBuffer(), mime], ...out];
+      }
+      // 输出为图片，跳过下方 PDF blob 固定逻辑
+      for(const [name,data,mt] of out){ triggerDownload(URL.createObjectURL(new Blob([data],{type:mt})), name); }
+      setStatus(`✅ 完成，${out.length} 张图片已开始下载`,'ok'); go.disabled=false; return;
     } else if(id==='pdf2img'){
       pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
       const bytes=await files[0].arrayBuffer();
