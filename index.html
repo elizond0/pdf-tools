@@ -15,11 +15,11 @@ header p{font-size:13px;opacity:.85}
 .badge{display:inline-block;background:rgba(255,255,255,.15);border-radius:99px;padding:3px 12px;font-size:12px;margin-top:10px}
 main{max-width:760px;margin:0 auto;padding:20px 14px 60px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
-.tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 14px;text-align:center;cursor:pointer;transition:.15s;user-select:none}
+.tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 14px;text-align:center;cursor:pointer;transition:.15s;user-select:none;min-width:0;overflow:hidden}
 .tool:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);border-color:var(--pri)}
 .tool .ico{font-size:30px;line-height:1}
 .tool h3{font-size:15px;margin:8px 0 4px}
-.tool p{font-size:12px;color:var(--muted)}
+.tool p{font-size:12px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
 .panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:16px}
 .panel.active{display:block}
 .panel h2{font-size:17px;margin-bottom:4px}
@@ -60,7 +60,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     <div id="pOut"></div>
   </div>
 </main>
-<footer data-build="v3.2 · 2026-11-20 16:51 修复工具标题 SVG 乱码与上传提示">托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.2 · 2026-11-20 16:51 修复工具标题 SVG 乱码与上传提示</span></footer>
+<footer data-build="v3.3 · 2026-11-24 17:00 修复 Office 转 PDF 卡片文字溢出">托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.3 · 2026-11-24 17:00 修复 Office 转 PDF 卡片文字溢出</span></footer>
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
