@@ -6,40 +6,71 @@
 <title>PDF 工具箱 · 随时随处可用</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>📄</text></svg>">
 <style>
-:root{--bg:#f5f6f8;--card:#fff;--pri:#2563eb;--txt:#1f2937;--muted:#6b7280;--line:#e5e7eb;--ok:#059669;}
+:root{
+  --bg:#f5f6f8;--card:#fff;--card-2:#eef2f8;--pri:#3659d6;--pri-ink:#172a4a;--txt:#1f2937;
+  --muted:#667085;--line:#dfe4ec;--line-soft:#e9edf3;--ok:#147a52;--err:#c83c44;
+  --font-display:ui-serif,"Noto Serif CJK SC","Songti SC","STSong",Georgia,serif;
+  --font-body:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --ease:cubic-bezier(.16,1,.3,1);--dur:320ms;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
-header{background:linear-gradient(135deg,#1e40af,#2563eb);color:#fff;padding:28px 16px;text-align:center}
-header h1{font-size:22px;margin-bottom:6px}
-header p{font-size:13px;opacity:.85}
-.badge{display:inline-block;background:rgba(255,255,255,.15);border-radius:99px;padding:3px 12px;font-size:12px;margin-top:10px}
-main{max-width:760px;margin:0 auto;padding:20px 14px 60px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
-.tool{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 14px;text-align:center;cursor:pointer;transition:.15s;user-select:none;min-width:0;overflow:hidden}
-.tool:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.08);border-color:var(--pri)}
-.tool .ico{font-size:30px;line-height:1}
-.tool h3{font-size:15px;margin:8px 0 4px}
-.tool p{font-size:12px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere;word-break:break-word}
-.panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:16px}
+body{font:14px/1.65 var(--font-body);background:var(--bg);color:var(--txt);min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(48rem 30rem at 10% -10%,rgba(54,89,214,.10),transparent 62%),
+    linear-gradient(rgba(31,41,55,.022) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(31,41,55,.022) 1px,transparent 1px);
+  background-size:auto,28px 28px,28px 28px}
+header,main,footer{position:relative;z-index:1}
+header{background:var(--pri-ink);color:#fff;padding:30px 16px;text-align:center;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:32px 32px;border-bottom:1px solid rgba(255,255,255,.12)}
+header h1{font:700 24px/1.2 var(--font-display);letter-spacing:.01em;margin-bottom:8px}
+header p{font-size:13px;opacity:.82}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:99px;padding:5px 13px;font-size:12px;margin-top:12px}
+main{max-width:900px;margin:0 auto;padding:24px 16px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.tool{display:block;width:100%;font:inherit;color:inherit;text-align:center;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--radius,14px);padding:18px 14px;cursor:pointer;
+  transition:transform var(--dur) var(--ease),box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease);
+  user-select:none;min-width:0;overflow:hidden;min-height:132px}
+.tool:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(54,89,214,.12);border-color:var(--pri)}
+.tool:active{transform:translateY(-1px)}
+.tool .ico{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:var(--card-2);color:var(--pri)}
+.tool h3{font:650 15px/1.4 var(--font-display);margin:12px 0 5px}
+.tool p{font-size:12px;color:var(--muted);line-height:1.5;overflow-wrap:anywhere;word-break:break-word}
+.panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:16px;box-shadow:0 2px 12px rgba(31,41,55,.05)}
 .panel.active{display:block}
-.panel h2{font-size:17px;margin-bottom:4px}
+.panel h2{font:700 18px/1.3 var(--font-display);margin-bottom:4px;display:flex;align-items:center;gap:10px}
 .panel .desc{font-size:13px;color:var(--muted);margin-bottom:14px}
-.drop{border:2px dashed #cbd5e1;border-radius:12px;padding:26px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer}
-.drop.on{border-color:var(--pri);background:#eff6ff}
+.drop{border:2px dashed #c7d0de;border-radius:12px;padding:26px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer;background:var(--card)}
+.drop.on{border-color:var(--pri);background:#eef3ff}
 .filelist{margin:12px 0;font-size:13px}
-.filelist .f{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f8fafc;border-radius:8px;margin-bottom:6px}
-.filelist .f .rm{color:#dc2626;cursor:pointer;padding:0 6px}
-input[type=text],select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;width:100%}
+.filelist .f{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;background:#f6f8fb;border-radius:8px;margin-bottom:6px}
+.filelist .f .rm{color:var(--err);cursor:pointer;padding:6px 8px;background:transparent;border:0;font:inherit;min-height:32px}
+input[type=text],select{border:1px solid var(--line);border-radius:8px;padding:9px 10px;font:14px var(--font-body);width:100%;background:#fff}
 .row{display:flex;gap:10px;margin:10px 0;flex-wrap:wrap;align-items:center}
 .row label{font-size:13px;color:var(--muted);white-space:nowrap}
-button.go{width:100%;background:var(--pri);color:#fff;border:0;border-radius:10px;padding:12px;font-size:15px;cursor:pointer;margin-top:10px}
-button.go:disabled{opacity:.5}
-button.back{background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;margin-bottom:10px}
+button.go{width:100%;background:var(--pri);color:#fff;border:0;border-radius:10px;padding:12px;font:600 15px var(--font-body);cursor:pointer;margin-top:10px;min-height:44px}
+button.go:disabled{opacity:.5;cursor:not-allowed}
+button.back{background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;margin-bottom:10px;min-height:40px}
 .status{margin-top:10px;font-size:13px;color:var(--muted);min-height:18px}
 .status.ok{color:var(--ok)}
-.status.err{color:#dc2626}
+.status.err{color:var(--err)}
 a.dl{display:inline-block;background:var(--ok);color:#fff;border-radius:10px;padding:10px 18px;margin-top:10px;text-decoration:none;font-size:14px}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media (max-width:768px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){
+  header{padding:24px 14px}header h1{font-size:21px}
+  main{padding:18px 12px 48px}
+  .grid{grid-template-columns:1fr;gap:10px}
+  .tool{display:grid;grid-template-columns:48px 1fr;grid-template-rows:auto auto;column-gap:14px;text-align:left;padding:16px;min-height:104px}
+  .tool .ico{grid-row:1 / 3;align-self:center}
+  .tool h3{margin:0 0 3px}
+  .tool p{line-height:1.5}
+  .panel{padding:16px 14px}
+}
 </style>
 </head>
 <body>
@@ -60,7 +91,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     <div id="pOut"></div>
   </div>
 </main>
-<footer data-build="v3.3 · 2026-11-24 17:00 修复 Office 转 PDF 卡片文字溢出">托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.3 · 2026-11-24 17:00 修复 Office 转 PDF 卡片文字溢出</span></footer>
+<footer data-build="v3.4 · 2026-11-25 22:10 工具卡片键盘可达与移动端单列布局">托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.4 · 2026-11-25 22:10 工具卡片键盘可达与移动端单列布局</span></footer>
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
@@ -86,7 +117,7 @@ const SRV_TOOLS=[
 ];
 const menu = document.getElementById('menu');
 function renderMenu(){
-  menu.innerHTML = TOOLS.map(t=>`<div class="tool" onclick="openTool('${t.id}')"><div class="ico">${t.ico}</div><h3>${t.name}</h3><p>${t.desc}</p></div>`).join('');
+  menu.innerHTML = TOOLS.map(t=>`<button type="button" class="tool" aria-label="打开${t.name}" onclick="openTool('${t.id}')"><span class="ico">${t.ico}</span><h3>${t.name}</h3><p>${t.desc}</p></button>`).join('');
 }
 renderMenu();
 async function detectNas(){
@@ -123,13 +154,14 @@ function openTool(id){
   $('pStatus').textContent=''; $('pOut').innerHTML='';
   const accept = curTool.accept ? curTool.accept : ((id==='img2pdf') ? 'image/jpeg,image/png' : 'application/pdf');
   $('pBody').innerHTML = `
-    <div class="drop" id="drop">点击或拖拽文件到这里（${id==='imgcompress'?'JPG / PNG / WebP':id==='img2pdf'?'JPG / PNG':id==='srvoffice'?'Word / Excel / PPT':'PDF'}）</div>
+    <div class="drop" id="drop" role="button" tabindex="0" aria-label="选择文件：点击或拖拽到这里">点击或拖拽文件到这里（${id==='imgcompress'?'JPG / PNG / WebP':id==='img2pdf'?'JPG / PNG':id==='srvoffice'?'Word / Excel / PPT':'PDF'}）</div>
     <div class="filelist" id="flist"></div>
     <div id="opts"></div>
     <button class="go" id="go" disabled>开始处理</button>`;
   const drop=$('drop');
   drop.onclick=()=>{const inp=document.createElement('input');inp.type='file';inp.multiple=true;inp.accept=accept;
     inp.onchange=()=>addFiles(inp.files);inp.click();};
+  drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();drop.click();}};
   drop.ondragover=e=>{e.preventDefault();drop.classList.add('on');};
   drop.ondragleave=()=>drop.classList.remove('on');
   drop.ondrop=e=>{e.preventDefault();drop.classList.remove('on');addFiles(e.dataTransfer.files);};
@@ -156,7 +188,7 @@ function addFiles(list){
       : (f.type==='application/pdf' || /\.pdf$/i.test(f.name));
     if(okType) files.push(f);
   }
-  $('flist').innerHTML = files.map((f,i)=>`<div class="f"><span>${i+1}. ${f.name}（${(f.size/1048576).toFixed(2)} MB）</span><span class="rm" onclick="files.splice(${i},1);renderList()">✕</span></div>`).join('');
+  $('flist').innerHTML = files.map((f,i)=>`<div class="f"><span>${i+1}. ${f.name}（${(f.size/1048576).toFixed(2)} MB）</span><button type="button" class="rm" aria-label="移除 ${f.name}" onclick="files.splice(${i},1);renderList()">✕</button></div>`).join('');
   $('go').disabled = files.length===0;
   setStatus(files.length? `已选 ${files.length} 个文件`:'');
 }
