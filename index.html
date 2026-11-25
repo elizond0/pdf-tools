@@ -91,10 +91,11 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
     <div id="pOut"></div>
   </div>
 </main>
-<footer data-build="v3.4 · 2026-11-25 22:10 工具卡片键盘可达与移动端单列布局">托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.4 · 2026-11-25 22:10 工具卡片键盘可达与移动端单列布局</span></footer>
+<footer data-build="v3.5 · 2026-11-25 23:10 PDF 转图片默认 ZIP 打包下载">托管于 GitHub Pages · 纯前端实现 · 数据永不离开你的设备<br><span id="ver">v3.5 · 2026-11-25 23:10 PDF 转图片默认 ZIP 打包下载</span></footer>
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="vendor/pdf.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
 <script>
 // ===== NAS 服务端（Stirling PDF 经 Cloudflare 隧道暴露，地址由 nas.json 自愈同步）=====
 const NAS_KEY='pk_38b17a8712c561e6cd80b9d1';
@@ -174,7 +175,8 @@ function renderOpts(){
   else if(id==='delpg') o.innerHTML=`<div class="row"><label>删除页码</label><input type="text" id="oPages" placeholder="如 2,5-7（从 1 开始）"></div>`;
   else if(id==='split') o.innerHTML=`<div class="row"><label>保留/导出页码</label><input type="text" id="oPages" placeholder="如 1-3,5,8-10；留空=每页单独一个文件"></div>`;
   else if(id==='compress') o.innerHTML=`<div class="row"><label>图片质量</label><select id="oQ"><option value="0.8">高（80%）</option><option value="0.6" selected>中（60%，推荐）</option><option value="0.4">低（40%，体积最小）</option></select><label>缩放</label><select id="oS"><option value="1">原始尺寸</option><option value="1.5" selected>1.5×DPI</option><option value="2">2×DPI</option></select></div>`;
-  else if(id==='pdf2img') o.innerHTML=`<div class="row"><label>缩放</label><select id="oS"><option value="1.5" selected>1.5×（推荐）</option><option value="2">2×（更清晰）</option><option value="3">3×（最清晰）</option></select></div>`;
+  else if(id==='pdf2img') o.innerHTML=`<div class="row"><label>缩放</label><select id="oS"><option value="1.5" selected>1.5×（推荐）</option><option value="2">2×（更清晰）</option><option value="3">3×（最清晰）</option></select></div>
+    <div class="row"><label><input type="checkbox" id="oZip" checked style="width:auto"> 打包为 ZIP（推荐）</label><span style="font-size:12px;color:var(--muted)">取消后逐张下载，浏览器可能拦截多个文件</span></div>`;
   else if(id==='imgcompress') o.innerHTML=`<div class="row"><label>输出格式</label><select id="oFmt"><option value="webp-fast">WebP 快速（推荐，秒出）</option><option value="avif">AVIF（体积最小，稍慢）</option><option value="webp-pro">WebP 专业（更高质量）</option><option value="jpeg">JPEG（通用）</option><option value="png">PNG（无损）</option></select></div>
     <div class="row"><label>压缩质量</label><select id="oQ"><option value="0.9">高 90%</option><option value="0.8" selected>中 80%</option><option value="0.6">低 60%</option></select><label>最大边长</label><select id="oMAX"><option value="0" selected>不缩放</option><option value="1920">1920px</option><option value="1280">1280px</option></select></div>
     <div style="font-size:12px;color:var(--muted);margin-top:8px">AVIF / 专业 WebP 首次会加载约 3MB 编码器（本地自带，不联网）；图片全程不上传</div>`;
@@ -381,17 +383,30 @@ async function run(){
       const bytes=await files[0].arrayBuffer();
       const pdf=await pdfjsLib.getDocument({data:bytes}).promise;
       const s=+$('oS').value; let n=0;
+      const baseName=files[0].name.replace(/\.pdf$/i,'');
+      const useZip=!!($('oZip') && $('oZip').checked && typeof JSZip !== 'undefined');
+      const zip=useZip ? new JSZip() : null;
       for(let i=1;i<=pdf.numPages;i++){
         setStatus(`导出第 ${i}/${pdf.numPages} 页…`);
         const page=await pdf.getPage(i);
         const vp=page.getViewport({scale:s});
         const cv=document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
         await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
-        const url=cv.toDataURL('image/png');
-        triggerDownload(url,`${files[0].name.replace(/\.pdf$/i,'')}-第${i}页.png`);
+        const blob=await new Promise(res=>cv.toBlob(res,'image/png'));
+        const name=`${baseName}-第${i}页.png`;
+        if(zip) zip.file(name, blob);
+        else triggerDownload(URL.createObjectURL(blob), name);
         n++;
       }
-      setStatus(`✅ 已导出 ${n} 张图片（浏览器可能拦截批量下载，请允许）`,'ok'); go.disabled=false; return;
+      if(zip){
+        setStatus(`正在打包 ${n} 张图片为 ZIP…`);
+        const zblob=await zip.generateAsync({type:'blob'});
+        triggerDownload(URL.createObjectURL(zblob), `${baseName}-图片.zip`);
+        setStatus(`✅ 已导出 ${n} 张图片并打包为 ZIP，已开始下载`,'ok');
+      } else {
+        setStatus(`✅ 已逐张导出 ${n} 张图片（浏览器可能拦截批量下载，请允许）`,'ok');
+      }
+      go.disabled=false; return;
     } else if(id==='compress'){
       pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';
       const bytes=await files[0].arrayBuffer();
